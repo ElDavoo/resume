@@ -1,1 +1,8 @@
 .DS_Store
+*.synctex.gz
+*.fls
+*.log
+*.out
+pdfa.xmpi
+*.aux
+*.fdb_latexmk
