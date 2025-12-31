@@ -7,3 +7,4 @@ pdfa.xmpi
 *.aux
 *.fdb_latexmk
 result
+*.pdf
