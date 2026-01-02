@@ -1,0 +1,79 @@
+{
+    "latex-workshop.latex.tools": [
+        {
+            "name": "latexmk",
+            "command": "latexmk",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-outdir=%OUTDIR%",
+                "resume.tex"
+            ],
+        },
+        {
+            "name": "latexmk (resume-en)",
+            "command": "latexmk",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-outdir=%OUTDIR%",
+                "-jobname=resume-en",
+                "resume.tex"
+            ],
+        },
+        {
+            "name": "latexmk (resume-it)",
+            "command": "latexmk",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-outdir=%OUTDIR%",
+                "-jobname=resume-it",
+                "resume.tex"
+            ],
+        },
+        {
+            "name": "latexmk (resume-fr)",
+            "command": "latexmk",
+            "args": [
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-outdir=%OUTDIR%",
+                "-jobname=resume-fr",
+                "resume.tex"
+            ],
+        }
+    ],
+    "latex-workshop.latex.recipes": [
+        {
+            "name": "latexmk",
+            "tools": ["latexmk"]
+        },
+        {
+            "name": "latexmk (resume-en)",
+            "tools": ["latexmk (resume-en)"]
+        },
+        {
+            "name": "latexmk (resume-it)",
+            "tools": ["latexmk (resume-it)"]
+        },
+        {
+            "name": "latexmk (resume-fr)",
+            "tools": ["latexmk (resume-fr)"]
+        }
+    ],
+    
+    
+}

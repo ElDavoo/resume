@@ -1,0 +1,101 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "latexmk",
+            "type": "process",
+            "command": "nix",
+            "args": [
+                "develop",
+                "--command",
+                "latexmk",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "resume.tex"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "latexmk (resume-en)",
+            "type": "process",
+            "command": "nix",
+            "args": [
+                "develop",
+                "--command",
+                "latexmk",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-jobname=resume-en",
+                "resume.tex"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "latexmk (resume-it)",
+            "type": "process",
+            "command": "nix",
+            "args": [
+                "develop",
+                "--command",
+                "latexmk",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-jobname=resume-it",
+                "resume.tex"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "latexmk (resume-fr)",
+            "type": "process",
+            "command": "nix",
+            "args": [
+                "develop",
+                "--command",
+                "latexmk",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-lualatex",
+                "-jobname=resume-fr",
+                "resume.tex"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "command": "rm",
+            "args": [
+                "-f",
+                "resume.pdf",
+                "resume-en.pdf",
+                "resume-it.pdf",
+                "resume-fr.pdf",
+                "*.aux",
+                "*.bbl",
+                "*.blg",
+                "*.fdb_latexmk",
+                "*.fls",
+                "*.log",
+                "*.out",
+                "*.synctex.gz",
+                "pdfa.xmpi"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

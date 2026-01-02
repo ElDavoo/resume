@@ -25,17 +25,40 @@
           buildPhase = ''
             export PATH="${pkgs.lib.makeBinPath buildInputs}";
             mkdir -p .cache/texmf-var
+            
+            # Build English version
             env TEXMFHOME=.cache TEXMFVAR=.cache/texmf-var TEXMFCACHE=.cache/.texmf-cache \
             latexmk -interaction=nonstopmode \
             -shell-escape \
             -pdf \
             -lualatex \
-            -jobname=resume \
+            -jobname=resume-en \
             -usepretex='\RequirePackage{luatex85,shellesc}' \
-            resume.tex          '';
+            resume.tex
+            
+            # Build Italian version
+            env TEXMFHOME=.cache TEXMFVAR=.cache/texmf-var TEXMFCACHE=.cache/.texmf-cache \
+            latexmk -interaction=nonstopmode \
+            -shell-escape \
+            -pdf \
+            -lualatex \
+            -jobname=resume-it \
+            -usepretex='\RequirePackage{luatex85,shellesc}' \
+            resume.tex
+            
+            # Build French version
+            env TEXMFHOME=.cache TEXMFVAR=.cache/texmf-var TEXMFCACHE=.cache/.texmf-cache \
+            latexmk -interaction=nonstopmode \
+            -shell-escape \
+            -pdf \
+            -lualatex \
+            -jobname=resume-fr \
+            -usepretex='\RequirePackage{luatex85,shellesc}' \
+            resume.tex
+          '';
           installPhase = ''
             mkdir -p $out
-            cp resume.pdf $out/
+            cp resume-en.pdf resume-it.pdf resume-fr.pdf $out/
           '';
         };
       };
