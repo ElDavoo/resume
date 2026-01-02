@@ -8,11 +8,14 @@
     with flake-utils.lib; eachSystem allSystems (system:
     let
       pkgs = nixpkgs.legacyPackages.${system};
-      # TODO replace scheme-full with scheme-minimal
       tex = pkgs.texlive.combine {
-          inherit (pkgs.texlive) scheme-full latex-bin latexmk
+          inherit (pkgs.texlive) scheme-minimal latex-bin latexmk
           extsizes pdfx everyshi xcolor luatex85 xmpincl accsupp fontawesome5
-          luatexbase koma-script fontspec
+          luatexbase koma-script fontspec etoolbox paracol hyperref geometry
+          tikz-cd pgf environ tcolorbox enumitem trimspaces adjustbox dashrule
+          multirow tabulary changepage ragged2e lato iftex l3kernel l3packages
+          ifmtarg xifthen xkeyval collectbox pdfcol ltxcmds infwarerr pdftexcmds
+          tikzfill tools fontaxes mweights epstopdf-pkg
           ;
       };
     in rec {
