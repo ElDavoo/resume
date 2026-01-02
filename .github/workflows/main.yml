@@ -21,7 +21,7 @@ jobs:
           args: -pdf -lualatex -interaction=nonstopmode -jobname=resume-${{ matrix.language }}
       - name: Only upload artifact if there is no tag
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: resume-${{ matrix.language }}
           path: resume-${{ matrix.language }}.pdf
