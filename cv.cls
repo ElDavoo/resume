@@ -302,3 +302,44 @@
   \color{body}
   \raggedright
 }
+
+% Multilanguage support
+% Define language based on jobname (resume-en, resume-it, etc.)
+\newcommand{\resumelang}{en} % default language
+
+% Detect language from jobname
+\makeatletter
+% Extract language code after the dash: resume-en -> en
+% If no dash found, defaults to 'en'
+\def\extractlang#1-#2-#3\@nil{%
+  \ifx\relax#2\relax
+    % No dash found, keep default 'en'
+  \else
+    % #2 contains the language code (e.g., "en")
+    \def\@templang{#2}%
+    \ifx\@templang\empty
+      % Empty after dash, keep default
+    \else
+      \expandafter\gdef\expandafter\resumelang\expandafter{#2}%
+    \fi
+  \fi
+}
+\expandafter\extractlang\jobname--\@nil
+\makeatother
+
+% Define language commands - compare strings directly
+\newcommand{\en}[1]{%
+  \ifnum\pdfstrcmp{\resumelang}{en}=0 #1\fi%
+}
+\newcommand{\ita}[1]{%
+  \ifnum\pdfstrcmp{\resumelang}{it}=0 #1\fi%
+}
+\newcommand{\fr}[1]{%
+  \ifnum\pdfstrcmp{\resumelang}{fr}=0 #1\fi%
+}
+\newcommand{\de}[1]{%
+  \ifnum\pdfstrcmp{\resumelang}{de}=0 #1\fi%
+}
+\newcommand{\es}[1]{%
+  \ifnum\pdfstrcmp{\resumelang}{es}=0 #1\fi%
+}
