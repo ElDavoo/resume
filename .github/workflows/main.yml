@@ -15,7 +15,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
       - name: Compile LaTeX document (${{ matrix.language }})
-        uses: xu-cheng/latex-action@v3
+        uses: xu-cheng/latex-action@v4
         with:
           root_file: resume.tex
           args: -pdf -lualatex -interaction=nonstopmode -jobname=resume-${{ matrix.language }}
