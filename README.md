@@ -1,7 +1,8 @@
 # Davide Palma's Resume
 
 This is my resume, based on the
-[techResume](https://github.com/alexcalabrese/techResume) template.
+[techResume](https://github.com/alexcalabrese/techResume) template.  
+You can read it in the release section.  
 It mainly adds multilanguage support, based on the latexmk job name feature,
 and a set of commands to switch between languages.
 
@@ -9,13 +10,13 @@ and a set of commands to switch between languages.
 
 There are multiple ways to build the resume.  
 The multilanguage machinery needs lualatex, so don't use pdflatex.  
-Each way is actually using a different TeX distribution, which is quite funny.
+Each way is actually using a different TeX distribution, which is quite funny.  
 All ways use latexmk. I don't know if other build systems would work.  
 
 ### 1) Using GitHub Actions
 
 Just push to the `main` branch, and the compiled PDF will be available
-in the Actions tab.
+in the Actions tab.  
 Tag the commit to create a release with the PDF attached.  
 
 ### 2) Using Nix

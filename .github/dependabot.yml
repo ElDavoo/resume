@@ -11,12 +11,3 @@ updates:
       separator: "/"
     reviewers:
       - "ElDavoo"
-
-  # Update Nix flake inputs ?
-  - package-ecosystem: "gitsubmodule"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "03:00"
-    open-pull-requests-limit: 5
