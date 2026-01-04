@@ -39,13 +39,22 @@ jobs:
         with:
           root_file: resume.tex
           args: -pdf -lualatex -interaction=nonstopmode -jobname=resume-fr
+      - name: Check if .tex files changed
+        id: check_tex_changes
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q '\.tex$'; then
+            echo "tex_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "tex_changed=false" >> $GITHUB_OUTPUT
+          fi
       - name: Generate screenshot from English PDF
+        if: steps.check_tex_changes.outputs.tex_changed == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
           convert -density 150 resume-en.pdf[0] -quality 90 example.jpg
       - name: Create Pull Request for screenshot update
-        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' }}
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' && steps.check_tex_changes.outputs.tex_changed == 'true' }}
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "Update example.jpg screenshot"
