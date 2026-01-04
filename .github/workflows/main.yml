@@ -26,6 +26,33 @@ jobs:
         with:
           root_file: resume.tex
           args: -pdf -lualatex -interaction=nonstopmode -jobname=resume-fr
+      - name: Generate screenshot from English PDF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          convert -density 150 resume-en.pdf[0] -quality 90 example.jpg
+      - name: Create Pull Request for screenshot update
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Update example.jpg screenshot"
+          title: "Update example.jpg screenshot"
+          body: "Automated update of the example screenshot from the latest resume-en.pdf"
+          branch: "update-screenshot"
+          delete-branch: true
+      - name: Generate changelog for release
+        if: startsWith(github.ref, 'refs/tags/')
+        id: changelog
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --oneline --no-decorate)
+          else
+            CHANGELOG=$(git log --oneline ${PREV_TAG}..HEAD --no-decorate)
+          fi
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Only upload artifacts if there is no tag
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-artifact@v6
@@ -37,3 +64,4 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: resume-*.pdf
+          body: ${{ steps.changelog.outputs.changelog }}
