@@ -1,5 +1,5 @@
 .DS_Store
-*.synctex.gz
+*.synctex*
 *.fls
 *.log
 *.out
