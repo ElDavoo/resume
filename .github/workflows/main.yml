@@ -4,6 +4,18 @@ permissions:
 name: Build LaTeX document
 on: [push]
 jobs:
+  build_nix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      - name: Build with Nix
+        run: nix build
+
   build_latex:
     runs-on: ubuntu-latest
     steps:
