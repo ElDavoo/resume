@@ -1,6 +1,8 @@
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
+  attestations: write
 
 name: Build LaTeX document
 on: [push]
@@ -24,13 +26,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
-      - name: Cache texlive
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/texlive
-            ~/.local/share/texlive
-          key: texlive-${{ runner.os }}-${{ hashFiles('flake.nix') }}
+          fetch-depth: 0
       - name: Compile English version
         uses: xu-cheng/latex-action@v4
         with:
@@ -48,20 +44,18 @@ jobs:
           args: -pdf -lualatex -interaction=nonstopmode -jobname=resume-fr
       - name: Check if .tex files changed
         id: check_tex_changes
-        run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q '\.tex$'; then
-            echo "tex_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "tex_changed=false" >> $GITHUB_OUTPUT
-          fi
+        uses: tj-actions/changed-files@v47
+        with:
+          files: '**/*.tex'
       - name: Generate screenshot from English PDF
-        if: steps.check_tex_changes.outputs.tex_changed == 'true'
+        if: steps.check_tex_changes.outputs.any_changed == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          magick resume-en.pdf[0] -density 120 -quality 80 example.jpg
+          convert resume-en.pdf[0] -density 180 -quality 80 example.jpg
+#          magick resume-en.pdf[0] -density 120 -quality 80 example.jpg
       - name: Create Pull Request for screenshot update
-        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' && steps.check_tex_changes.outputs.tex_changed == 'true' }}
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' && steps.check_tex_changes.outputs.any_changed == 'true' }}
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "Update example.jpg screenshot"
@@ -88,9 +82,19 @@ jobs:
         with:
           name: resume
           path: resume-*.pdf
+      - name: Generate build provenance
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: resume-*.pdf
       - name: Upload all PDFs to release if there is a tag
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: resume-*.pdf
           body: ${{ steps.changelog.outputs.changelog }}
+      - name: Generate build provenance for release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: resume-*.pdf
