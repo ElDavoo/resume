@@ -1,6 +1,8 @@
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
+  attestations: write
 
 name: Build LaTeX document
 on: [push]
@@ -49,7 +51,7 @@ jobs:
       - name: Check if .tex files changed
         id: check_tex_changes
         run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q '\.tex$'; then
+          if ! git rev-parse HEAD~1 &>/dev/null || git diff --name-only HEAD~1 HEAD | grep -q '\.tex$'; then
             echo "tex_changed=true" >> $GITHUB_OUTPUT
           else
             echo "tex_changed=false" >> $GITHUB_OUTPUT
@@ -59,7 +61,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          magick resume-en.pdf[0] -density 120 -quality 80 example.jpg
+          convert resume-en.pdf[0] -density 120 -quality 80 example.jpg
+#          magick resume-en.pdf[0] -density 120 -quality 80 example.jpg
       - name: Create Pull Request for screenshot update
         if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' && steps.check_tex_changes.outputs.tex_changed == 'true' }}
         uses: peter-evans/create-pull-request@v8
@@ -88,9 +91,19 @@ jobs:
         with:
           name: resume
           path: resume-*.pdf
+      - name: Generate build provenance
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: resume-*.pdf
       - name: Upload all PDFs to release if there is a tag
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: resume-*.pdf
           body: ${{ steps.changelog.outputs.changelog }}
+      - name: Generate build provenance for release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: resume-*.pdf
