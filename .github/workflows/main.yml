@@ -24,6 +24,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: ${{ github.ref }}
+      - name: Cache texlive
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/texlive
+            ~/.local/share/texlive
+          key: texlive-${{ runner.os }}-${{ hashFiles('flake.nix') }}
       - name: Compile English version
         uses: xu-cheng/latex-action@v4
         with:
@@ -52,7 +59,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
-          convert -density 150 resume-en.pdf[0] -quality 90 example.jpg
+          magick resume-en.pdf[0] -density 120 -quality 80 example.jpg
       - name: Create Pull Request for screenshot update
         if: ${{ !startsWith(github.ref, 'refs/tags/') && github.ref == 'refs/heads/main' && steps.check_tex_changes.outputs.tex_changed == 'true' }}
         uses: peter-evans/create-pull-request@v8
