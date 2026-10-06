@@ -13,22 +13,34 @@ name: Dependabot auto-merge
 #
 # The job never checks out or runs the PR's code; it only talks to the API using the head
 # branch name, so the write token is never exposed to unreviewed code.
+#
+# A PR that is behind main is never merged, only rebased. The PRs here bump action versions,
+# so they touch .github/workflows/; squashing a stale branch would write workflow content that
+# no build ran on, and GitHub refuses that from GITHUB_TOKEN anyway ("refusing to allow a
+# GitHub App to create or update workflow ... without `workflows` permission"). Dependabot
+# only rebases by itself on a conflict, so a branch that is merely behind would sit forever;
+# asking it to rebase pushes a fresh commit, whose build brings us back here.
 on:
   workflow_run:
     workflows: ["Build LaTeX document"]
     types: [completed]
+  # A human push to main leaves every open bump behind. (A merge done by this workflow does
+  # not fire push -- GITHUB_TOKEN events never start runs -- so the job sweeps after merging.)
+  push:
+    branches: [main]
 
 permissions: {}
 
 # Two Dependabot builds can finish at the same moment; serialise per branch.
 concurrency:
-  group: dependabot-auto-merge-${{ github.event.workflow_run.head_branch }}
+  group: dependabot-auto-merge-${{ github.event.workflow_run.head_branch || 'sweep' }}
   cancel-in-progress: false
 
 jobs:
   auto-merge:
     # Only a build of a Dependabot branch that actually passed.
     if: >-
+      github.event_name == 'workflow_run' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.conclusion == 'success' &&
       startsWith(github.event.workflow_run.head_branch, 'dependabot/')
@@ -46,6 +58,20 @@ jobs:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
+
+          # Ask Dependabot to rebase every open bump that is behind main, except $1.
+          sweep() {
+            gh pr list --author app/dependabot --state open --json number,headRefName \
+                 --jq '.[] | "\(.number) \(.headRefName)"' |
+            while read -r n branch; do
+              [ "$n" != "${1:-}" ] || continue
+              behind=$(gh api "repos/$GH_REPO/compare/main...$branch" --jq '.behind_by')
+              if [ "$behind" -gt 0 ]; then
+                gh pr comment "$n" --body '@dependabot rebase'
+                echo "::notice::Asked Dependabot to rebase #$n ($behind behind main)."
+              fi
+            done
+          }
 
           # The branch, not github.event.workflow_run.pull_requests: that array is empty in
           # several documented cases, and a Dependabot branch always lives in this repository.
@@ -79,6 +105,14 @@ jobs:
             exit 0
           fi
 
+          # Behind main: rebase rather than merge (see the top of this file).
+          behind=$(gh api "repos/$GH_REPO/compare/main...$BRANCH" --jq '.behind_by')
+          if [ "$behind" -gt 0 ]; then
+            gh pr comment "$pr" --body '@dependabot rebase'
+            echo "::notice::PR #$pr is $behind behind main; asked Dependabot to rebase."
+            exit 0
+          fi
+
           # A conflicting PR (base moved under it) can't be merged; Dependabot will rebase it
           # and the new build re-triggers this workflow.
           mergeable=$(gh pr view "$pr" --json mergeable --jq '.mergeable')
@@ -98,3 +132,30 @@ jobs:
 
           gh pr merge "$pr" --squash --delete-branch
           echo "::notice::Merged Dependabot PR #$pr."
+
+          # Every other open bump is now behind; this merge fires no push run to notice that.
+          sweep "$pr"
+
+  sweep:
+    if: github.event_name == 'push'
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ask Dependabot to rebase bumps that are behind main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          gh pr list --author app/dependabot --state open --json number,headRefName \
+               --jq '.[] | "\(.number) \(.headRefName)"' |
+          while read -r n branch; do
+            behind=$(gh api "repos/$GH_REPO/compare/main...$branch" --jq '.behind_by')
+            if [ "$behind" -gt 0 ]; then
+              gh pr comment "$n" --body '@dependabot rebase'
+              echo "::notice::Asked Dependabot to rebase #$n ($behind behind main)."
+            fi
+          done
