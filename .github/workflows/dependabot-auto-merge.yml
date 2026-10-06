@@ -12,20 +12,25 @@ name: Dependabot auto-merge
 # so pushing one is what starts CI for the PR.
 #
 # The job never checks out or runs the PR's code; it only talks to the API using the head
-# branch name, so the write token is never exposed to unreviewed code.
+# branch name, so the write tokens are never exposed to unreviewed code.
 #
-# A PR that is behind main is never merged, only rebased. The PRs here bump action versions,
-# so they touch .github/workflows/; squashing a stale branch would write workflow content that
-# no build ran on, and GitHub refuses that from GITHUB_TOKEN anyway ("refusing to allow a
-# GitHub App to create or update workflow ... without `workflows` permission"). Dependabot
-# only rebases by itself on a conflict, so a branch that is merely behind would sit forever;
-# asking it to rebase pushes a fresh commit, whose build brings us back here.
+# A PR that is behind main is never merged, only rebased: squashing a stale branch would merge
+# a tree no build ran on. Dependabot rebases by itself only on a conflict, so a branch that is
+# merely behind is asked to with "@dependabot rebase"; the fresh commit's build brings us back.
+#
+# GITHUB_TOKEN can't do the asking: Dependabot answers github-actions[bot] with "only users
+# with push access can use that command". So the comment is posted with DEPENDABOT_REBASE_TOKEN,
+# a fine-grained PAT of the repo owner's on this repository with only Pull requests read/write.
+# Merging stays on GITHUB_TOKEN, which is fine for a branch that is up to date; on a stale one
+# it would be refused anyway, since these bumps touch .github/workflows/ ("refusing to allow a
+# GitHub App to create or update workflow ... without `workflows` permission").
+# Without the secret, the first bump of a batch merges and the rest wait for a manual rebase.
 on:
   workflow_run:
     workflows: ["Build LaTeX document"]
     types: [completed]
-  # A human push to main leaves every open bump behind. (A merge done by this workflow does
-  # not fire push -- GITHUB_TOKEN events never start runs -- so the job sweeps after merging.)
+  # A human push to main leaves every open bump behind. A merge done by this workflow fires no
+  # push -- GITHUB_TOKEN events never start runs -- so auto-merge sweeps after merging instead.
   push:
     branches: [main]
 
@@ -53,24 +58,21 @@ jobs:
       - name: Approve and merge if the build is green
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REBASE_TOKEN: ${{ secrets.DEPENDABOT_REBASE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           BRANCH: ${{ github.event.workflow_run.head_branch }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
 
-          # Ask Dependabot to rebase every open bump that is behind main, except $1.
-          sweep() {
-            gh pr list --author app/dependabot --state open --json number,headRefName \
-                 --jq '.[] | "\(.number) \(.headRefName)"' |
-            while read -r n branch; do
-              [ "$n" != "${1:-}" ] || continue
-              behind=$(gh api "repos/$GH_REPO/compare/main...$branch" --jq '.behind_by')
-              if [ "$behind" -gt 0 ]; then
-                gh pr comment "$n" --body '@dependabot rebase'
-                echo "::notice::Asked Dependabot to rebase #$n ($behind behind main)."
-              fi
-            done
+          # Ask Dependabot to rebase PR $1 -- as the repo owner, the only one it listens to.
+          rebase() {
+            if [ -z "$REBASE_TOKEN" ]; then
+              echo "::warning::#$1 is behind main and DEPENDABOT_REBASE_TOKEN is not set; rebase it by hand."
+              return
+            fi
+            GH_TOKEN=$REBASE_TOKEN gh pr comment "$1" --body '@dependabot rebase'
+            echo "::notice::Asked Dependabot to rebase #$1."
           }
 
           # The branch, not github.event.workflow_run.pull_requests: that array is empty in
@@ -108,8 +110,7 @@ jobs:
           # Behind main: rebase rather than merge (see the top of this file).
           behind=$(gh api "repos/$GH_REPO/compare/main...$BRANCH" --jq '.behind_by')
           if [ "$behind" -gt 0 ]; then
-            gh pr comment "$pr" --body '@dependabot rebase'
-            echo "::notice::PR #$pr is $behind behind main; asked Dependabot to rebase."
+            rebase "$pr"
             exit 0
           fi
 
@@ -134,21 +135,25 @@ jobs:
           echo "::notice::Merged Dependabot PR #$pr."
 
           # Every other open bump is now behind; this merge fires no push run to notice that.
-          sweep "$pr"
+          gh pr list --author app/dependabot --state open --json number --jq '.[].number' |
+          while read -r n; do rebase "$n"; done
 
   sweep:
     if: github.event_name == 'push'
-    permissions:
-      pull-requests: write
     runs-on: ubuntu-latest
 
     steps:
       - name: Ask Dependabot to rebase bumps that are behind main
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_REBASE_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::DEPENDABOT_REBASE_TOKEN is not set; Dependabot ignores rebase requests from GITHUB_TOKEN."
+            exit 0
+          fi
 
           gh pr list --author app/dependabot --state open --json number,headRefName \
                --jq '.[] | "\(.number) \(.headRefName)"' |
